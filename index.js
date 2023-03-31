@@ -21,9 +21,30 @@ app.get('/', async (req, res, next) => {
 
 // Verifies token with jwt.verify and sets req.user
 // TODO - Create authentication middleware
+app.use(async (req, res, next)=>{
+  const auth = req.header('Authorization')
+  if(!auth){
+    res.send(401)
+    next()
+  }else{
+    const [, token] = auth.split(" ");
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = payload;
+    next();
+  }
+})
 
 // POST /register
 // OPTIONAL - takes req.body of {username, password} and creates a new user with the hashed password
+
+app.post('/login', async(req,res,next)=>{
+  try{
+    const { username, password } = req.body;
+    const hash = await bcrypt.hash(password, SALT_COUNT);
+    const user = await User.create({ username, password: hash });
+    const token = jwt.sign({ username, id: user.id }, JWT_SECRET)
+  }
+})
 
 // POST /login
 // OPTIONAL - takes req.body of {username, password}, finds user by username, and compares the password with the hashed version from the DB
