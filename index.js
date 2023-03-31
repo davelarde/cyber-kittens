@@ -37,17 +37,38 @@ app.use(async (req, res, next)=>{
 // POST /register
 // OPTIONAL - takes req.body of {username, password} and creates a new user with the hashed password
 
-app.post('/login', async(req,res,next)=>{
+app.post('/register', async(req,res,next)=>{
   try{
     const { username, password } = req.body;
     const hash = await bcrypt.hash(password, SALT_COUNT);
     const user = await User.create({ username, password: hash });
-    const token = jwt.sign({ username, id: user.id }, JWT_SECRET)
+    const token = jwt.sign({ username, id: user.id }, process.env.JWT_SECRET)
+    res.send({ message: "success", token });
+  }catch(error){
+    next(error)
   }
 })
 
 // POST /login
 // OPTIONAL - takes req.body of {username, password}, finds user by username, and compares the password with the hashed version from the DB
+
+app.post('/login', async(req,res,next)=>{
+  const isMatch = await bcrypt.compare(password, foundUser.password)
+  try{
+    const {username, password} = req.body
+    const [foundUser]= await User.findAll({where:{username}})
+    if(!foundUser){
+      res.send(401)
+    }if (!isMatch){
+      res.status(401).send("Unauthorized")
+    }else{
+      const token= jwt.sign(username, process.env.JWT_SECRET)
+      res.status(200).send({message: 'success', token: token})
+    }
+  }catch(error){
+    next(error)
+  }
+})
 
 // GET /kittens/:id
 // TODO - takes an id and returns the cat with that id
